@@ -4,6 +4,8 @@
 
 **A small laundry room for your AI companion.** A laundry basket, a washing machine, a hand-wash basin, a dryer — and a clothesline that hangs on your chat page.
 
+<p align="center"><img src="docs/hero.png" width="360" alt="A clothesline hanging under the chat header with sheets, a duvet cover, pillowcases, a pink kitty blanket, a T-shirt and a sock; a full laundry basket sits on the input box"></p>
+
 Time runs for real, nothing moves by itself, and nobody reminds him: when the wash is done, he has to go hang it; when it's dry, he has to go take it down. Whatever he hangs outside on a nice day shows up on a little clothesline in the top-left corner of your chat page, wet at first and slowly drying.
 
 > A chore that finishes itself isn't a chore.
@@ -40,6 +42,10 @@ One tool: `laundry(action, items, mode)`
 - **A cat**, if you name one, gets in the way.
 
 ## The clothesline widget
+
+<p align="center"><img src="docs/scenes.png" width="660" alt="Four scenes: a cat bedding set with a kitty blanket; freshly hung and still dripping; a white tee turned grey and a pillowcase turned denim blue; muddy laundry left out in the rain"></p>
+
+<p align="center"><img src="docs/drying.gif" width="440" alt="The same load slowly drying, from dark and wet back to its own colors"></p>
 
 ```html
 <script src="http://127.0.0.1:8790/widget/laundry-line.js" defer></script>

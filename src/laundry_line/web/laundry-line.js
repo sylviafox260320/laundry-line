@@ -103,6 +103,8 @@
     let h = 0; for (const c of n) h = (h * 31 + c.charCodeAt(0)) >>> 0; return 'var(--ll-c' + (1 + h % 6) + ')';
   }
   function mk(tag, attrs) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+  // 尺寸写死在元素上：挂到别人页面里时，不让页面自己的「svg { width: … }」之类的样式把绳子和衣服压扁
+  function fix(el, w, h) { el.style.cssText += ';width:' + w + 'px;height:' + h + 'px;max-width:none;max-height:none;min-width:0;min-height:0;'; return el; }
 
   function pattern(g, S, p) {
     if (p === 'cats') {   // 浅蓝波浪竖条 + 往上爬的小黑猫
@@ -142,6 +144,7 @@
     const S = SHAPES[kind(name)];
     const w = S.w * scale, h = S.h * scale;
     const svg = mk('svg', { width: w, height: h + 6 * scale, viewBox: '0 -6 ' + S.w + ' ' + (S.h + 6) });
+    fix(svg, w, h + 6 * scale);
     const id = 'llc' + Math.random().toString(36).slice(2, 8);
     const clip = mk('clipPath', { id }); clip.appendChild(mk('path', { d: S.d })); svg.appendChild(clip);
     const g = mk('g', { 'clip-path': 'url(#' + id + ')' });
@@ -210,6 +213,7 @@
       if (!full) return;
       bwrap = document.createElement('div'); bwrap.className = 'll-bwrap';
       const bk = document.createElement('div'); bk.className = 'll-basket'; bk.innerHTML = BASKET_SVG;
+      bk.firstChild.style.cssText = 'width:100%;height:auto;max-width:none;max-height:none;display:block;';
       bnote = document.createElement('div'); bnote.className = 'll-bnote'; bnote.textContent = '洗衣篮满啦';
       bk.addEventListener('click', () => { bnote.classList.add('open'); clearTimeout(btimer); btimer = setTimeout(() => bnote.classList.remove('open'), 2200); });
       bwrap.appendChild(bnote); bwrap.appendChild(bk);
@@ -249,6 +253,7 @@
     const yC = (yL + yR) / 2 + 2 * SAG, H = Math.max(yL, yR) + SAG + 10;
     const ropeY = t => (1 - t) * (1 - t) * yL + 2 * t * (1 - t) * yC + t * t * yR;
     const rope = mk('svg', { class: 'll-rope', width: W, height: H, viewBox: '0 0 ' + W + ' ' + H });
+    fix(rope, W, H);
     const dpath = 'M' + x0 + ' ' + yL + 'Q' + ((x0 + x1) / 2) + ' ' + yC + ' ' + x1 + ' ' + yR;
     rope.appendChild(mk('path', { d: dpath, fill: 'none', stroke: 'var(--ll-rope)', 'stroke-width': 1.5, 'stroke-linecap': 'round' }));
     rope.appendChild(mk('path', { d: dpath, fill: 'none', stroke: 'var(--ll-rope-hi)', 'stroke-width': .7, 'stroke-dasharray': '1.4 2.2', opacity: .8 }));

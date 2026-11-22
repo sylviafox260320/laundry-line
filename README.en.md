@@ -24,7 +24,7 @@ One tool: `laundry(action, items, mode)`
 | `wash` | wash the basket (or only the named `items`); `mode` = 「轻柔」 for the gentle cycle |
 | `handwash` | hand wash: soak → scrub → rinse → wring, one call per step; soaking takes ten minutes |
 | `hang` | hang outside if the weather is nice (it goes on the clothesline), otherwise indoors; when it rains, `hang` again to bring it in |
-| `dry` | tumble dry |
+| `dry` | tumble dry. No `items` = the whole washed load (or whatever is still wet on the line); name items to dry only those, the rest stays put |
 | `fold` | fold and put away; sheets go back on the bed |
 
 ## The house has a temper
@@ -52,6 +52,20 @@ One tool: `laundry(action, items, mode)`
 ```
 
 Optional attributes: `data-api`, `data-token`, `data-rope` (element to hang the line under; default: top-left of the screen), `data-basket` (element the full-basket icon sits on; default: bottom-right), `data-poll` (seconds). Everything visual is a CSS variable on `.ll-wrap` / `.ll-bwrap`.
+
+## Care labels
+
+<p align="center"><img src="docs/tags.png" width="320" alt="Two clothing care labels in a chat: cream cloth, a wooden clothespin on top, a row of laundry symbols with the steps he did printed darker"></p>
+
+When he calls `laundry`, your chat page can draw it as a clothing care label instead of a tool-call row: a row of laundry symbols (basket, wash, hand wash, line dry, tumble dry, fold) with the steps he did printed darker, and one line per step — the first sentence of the receipt, tap for the rest.
+
+```js
+// calls from the same turn go in one array and become one label
+const el = laundryLine.tag([{ action: 'put', text: result1 }, { action: 'wash', text: result2 }], { time: Date.now() });
+if (el) messages.appendChild(el);   // look / rules return null — draw them however you already do
+```
+
+Style it with the `--ll-tag-*` variables on `.ll-tag`.
 
 ## Try it
 

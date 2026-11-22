@@ -267,7 +267,7 @@ class LaundryRoom:
                 tints.append(e["tint"])
             if e["stage"] == "out":
                 texts.append(e["text"])
-            else:
+            elif e["stage"] == "fold":
                 s.setdefault("mishap_fold", []).append(e["text"])
         return "\n".join(texts), tints
 
@@ -584,18 +584,91 @@ class LaundryRoom:
             msg += f"\n{self.pet}蹲在底下，盯着被风吹起来的衣角。"
         return msg
 
-    def _dry(self, s, w, now):
+    @staticmethod
+    def _match(pool, w_):
+        """点名认衣服：先认一模一样的，再认包含的（写「床单」能认「小猫床单」「床单（小猫那套）」）。"""
+        return next((x for x in pool if x == w_), None) or next((x for x in pool if w_ in x or x in w_), None)
+
+    def _dry_named(self, s, wanted, now):
+        """点了名的 dry：先从洗好的（洗衣机、手洗盆）里认，再从晾着没干的里认；没点到的留在原地。
+        → (load, musty, text, notes)"""
+        musty_h = self.cfg["washer"]["musty_after_hours"] * 3600
+        srcs = []                                    # [名字, 那一批, 闷没闷, 还剩的]
+        st = self._washer_state(s, now)
+        if st in ("done", "musty"):
+            srcs.append(["washer", s["washer"], st == "musty", list(s["washer"]["items"])])
+        sk = s.get("sink")
+        if sk and sk.get("stage") == "done":
+            srcs.append(["sink", {"items": sk["items"], "events": []}, now - sk["done"] > musty_h, list(sk["items"])])
+        load, miss, already, busy, musty, touched = [], [], [], [], False, set()
+        for w_ in wanted:
+            got = next(((sr, h) for sr in srcs for h in [self._match(sr[3], w_)] if h), None)
+            if got:
+                sr, h = got
+                sr[3].remove(h)
+                touched.add(sr[0])
+                load.append(h)
+                musty = musty or sr[2]
+                continue
+            got = next(((ld, h) for ld in s["line"] if ld.get("dry", 0) < 1 for h in [self._match(ld["items"], w_)] if h), None)
+            if got:
+                ld, h = got
+                ld["items"].remove(h)
+                load.append(h)
+                musty = musty or ld.get("musty", False)
+                continue
+            h = next((self._match(ld["items"], w_) for ld in s["line"] if self._match(ld["items"], w_)), None)
+            wa = s.get("washer")
+            if h:
+                already.append(h)
+            elif wa and st == "running" and self._match(wa["items"], w_):
+                busy.append(self._match(wa["items"], w_))
+            else:
+                miss.append(w_)
+        s["line"] = [ld for ld in s["line"] if ld["items"]]
+        texts, notes = [], []
+        for name, src, _m, left in srcs:
+            if name not in touched:
+                continue
+            t, _ = self._take_out(s, src)            # 开门拿出来那一下的话，这回就说了
+            if t:
+                texts.append(t)
+            if not left:
+                s[name] = None
+            elif name == "washer":
+                # 没点到的留在洗衣机里，下回 hang/dry 再拿；留下那几件的串色记着，晾的时候照样上绳
+                s["washer"]["items"] = left
+                s["washer"]["events"] = [{"stage": "kept", "text": "", "tint": e["tint"]}
+                                         for e in src.get("events") or [] if e.get("tint") and e["tint"].get("n") in left]
+                notes.append(f"洗衣机里还留着：{self._names(left)}。")
+            else:
+                s["sink"]["items"] = left
+                notes.append(f"盆里还留着：{self._names(left)}。")
+        if already:
+            notes.append(f"{self._names(already)}已经干了，没放进去。")
+        if busy:
+            notes.append(f"{self._names(busy)}还在洗衣机里转，还剩 {self._left(s['washer']['end'], now)}，洗好了才能烘。")
+        if miss:
+            notes.append(f"没找到{self._names(miss)}（洗好的和晾着的里都没有）。")
+        return load, musty, "\n".join(texts), notes
+
+    def _dry(self, s, items, w, now):
         dr = s.get("dryer")
         st, src, srcname = self._ready(s, now)
         if dr and now < dr["end"]:
             return f"烘干机还在转（{self._names(dr['items'])}），还剩 {self._left(dr['end'], now)}。"
+        wanted = self._parse(items)
         pre = self._dirty_to_basket(s, now)
         if dr:
             s.setdefault("pile", []).extend({"n": n, "ts": round(now), "warm": dr["end"]} for n in dr["items"])
             pre = (pre + "\n" if pre else "") + f"先把烘好的{self._names(dr['items'])}拿出来放一边。"
             s["dryer"] = None
-        load, musty, text = [], False, ""
-        if st in ("done", "musty"):
+        load, musty, text, notes = [], False, "", []
+        if wanted:                      # 点了名就只烘那几件，没点到的留在原地
+            load, musty, text, notes = self._dry_named(s, wanted, now)
+            if not load:
+                return (pre + "\n" if pre else "") + "\n".join(notes)
+        elif st in ("done", "musty"):
             load = list(src["items"])
             musty = st == "musty"
             text, _ = self._take_out(s, src)
@@ -623,6 +696,8 @@ class LaundryRoom:
         msg = (pre + "\n" if pre else "") + f"放进烘干机了：{self._names(load)}。烘 {mins} 分钟，{self._hm(s['dryer']['end'])} 好。"
         if text:
             msg += "\n" + text
+        if notes:
+            msg += "\n" + "\n".join(notes)
         if musty:
             msg += "\n闷过的味道烘完也不会全散。"
         if self.cfg["rules"].get("prefer_line_dry") and w and not w["rain"] and self._is_day(now) \
@@ -734,7 +809,7 @@ class LaundryRoom:
             elif action == "hang":
                 out = self._hang(s, items, force_in, w, now)
             elif action == "dry":
-                out = self._dry(s, w, now)
+                out = self._dry(s, items, w, now)
             else:
                 out = self._fold(s, now)
             self._write(s)

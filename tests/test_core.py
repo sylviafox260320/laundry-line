@@ -166,6 +166,50 @@ def test_no_pet_no_pet_lines():
         assert "团子" not in out and "趴在" not in out
 
 
+
+def test_dry_only_what_he_named():
+    # 三缸晾着，点名只烘小猫那三件：别的照样晾着，没点的睡衣也不会被顺手扔进烘干机
+    r, w = room()
+    w.set("多云", 15, 60, 6, at=0)
+    t = at(10)
+    r.run("put", "小猫床单、小猫被套、枕套", now=t); r.run("wash", now=t + 60); r.run("hang", now=t + 46 * 60)
+    r.run("put", "内裤、睡裤", now=t + 47 * 60); r.run("wash", now=t + 48 * 60); r.run("hang", now=t + 94 * 60)
+    r.run("put", "黑睡衣", now=t + 95 * 60); r.run("wash", "", "轻柔", now=t + 96 * 60); r.run("hang", now=t + 137 * 60)
+    out = r.run("dry", "小猫床单、小猫被套、枕套", now=t + 140 * 60)
+    assert "放进烘干机了：小猫床单、小猫被套、枕套" in out, out
+    s = r._read()
+    assert s["dryer"]["items"] == ["小猫床单", "小猫被套", "枕套"]
+    left = [n for ld in s["line"] for n in ld["items"]]
+    assert left == ["内裤", "睡裤", "黑睡衣"], left
+    assert not s.get("scar_pending")
+
+
+def test_dry_named_leaves_the_rest_in_the_washer():
+    # 洗衣机里一缸洗好了，只烘两件：剩下的留在洗衣机里，串了色的那件晾的时候照样带着颜色
+    r, w = room({"sorting": {"bleed_p": 1.0, "delicate_wash_p": 0, "delicate_dry_p": 0}})
+    t = at(10)
+    r.run("put", "黑袜子、白T恤、毛巾、浴巾", now=t)
+    r.run("wash", now=t + 60)
+    out = r.run("dry", "毛巾、浴巾", now=t + 47 * 60)
+    assert "洗衣机里还留着：黑袜子、白T恤" in out, out
+    assert "掉色" in out                       # 开门那一下的话这回说了
+    out = r.run("hang", now=t + 48 * 60)
+    assert "掉色" not in out                   # 不会再说一遍
+    assert r._read()["line"][0].get("tint") == [{"n": "白T恤", "c": "grey"}]
+
+
+def test_dry_named_says_what_it_did_not_take():
+    r, w = room()
+    w.set("晴", 15, 40, 20, at=0)
+    t = at(9)
+    r.run("put", "床单", now=t); r.run("wash", now=t + 60); r.run("hang", now=t + 46 * 60)
+    ticks(r, t + 46 * 60, t + 6 * 3600)
+    r.run("put", "T恤", now=t + 6 * 3600); r.run("wash", now=t + 6 * 3600 + 60)
+    out = r.run("dry", "床单、袜子、T恤", now=t + 6 * 3600 + 120)
+    assert "床单已经干了" in out and "没找到袜子" in out and "T恤还在洗衣机里转" in out, out
+    assert r._read()["dryer"] is None
+
+
 if __name__ == "__main__":
     n = 0
     for name, fn in list(globals().items()):

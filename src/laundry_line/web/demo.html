@@ -43,7 +43,7 @@
 <body>
 <div class="wrap">
   <h1>🧺 晾衣绳 laundry-line</h1>
-  <p class="sub">一间临时洗衣房，带快进钟。点右边的按钮，就是 Ewan 在调 <code>laundry</code> 工具；天好晾出去的，会挂在左边聊天页的绳子上。</p>
+  <p class="sub">一间临时洗衣房，带快进钟。点右边的按钮，就是 Ewan 在调 <code>laundry</code> 工具：他每干一步，左边聊天页里冒一张洗标；天好晾出去的，会挂在绳子上。</p>
 
   <div class="phone">
     <div class="demo-header">
@@ -129,6 +129,21 @@
     const w = d.weather;
     $('#wx').textContent = w ? `${w.sky}，${Math.round(w.temp)}°，湿度 ${Math.round(w.rh)}%，风 ${Math.round(w.wind)} km/h` : '';
   }
+  // 他调 laundry 干活的那几次，在假手机里画成洗标；连着点的并成一张，过时间/换天气就另起一张
+  let tagSteps = [], tagEl = null, tagStamp = '';
+  function endTag() { tagSteps = []; tagEl = null; }
+  function addTag(action, out, d) {
+    if (!window.laundryLine || !window.laundryLine.tag || action === 'look' || action === 'rules') return;
+    if (!tagSteps.length) {
+      const m = (d.label || '').match(/(\d+)月(\d+)日\s*(\d+:\d+)/);
+      tagStamp = m ? ('0' + m[1]).slice(-2) + '.' + ('0' + m[2]).slice(-2) + '  ' + m[3] : '';
+    }
+    tagSteps.push({ action, text: out });
+    const el = window.laundryLine.tag(tagSteps, { stamp: tagStamp });
+    if (!el) return;
+    if (tagEl && tagEl.parentNode) tagEl.replaceWith(el); else $('.msgs').appendChild(el);
+    tagEl = el;
+  }
   async function post(url, body) {
     const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
     const d = await r.json(); clock(d);
@@ -142,16 +157,22 @@
     if (b.dataset.i === 'ask') items = prompt('只洗哪几件？（顿号隔开）', '睡衣') || '';
     const d = await post('/demo/run', { action, items, mode });
     say(`laundry(${action}${items ? '，' + items : ''}${mode ? '，' + mode : ''})`, d.out);
+    addTag(action, d.out, d);
   }));
   document.querySelectorAll('button[data-adv]').forEach(b => b.addEventListener('click', async () => {
+    endTag();
     const d = await post('/demo/advance', { minutes: +b.dataset.adv });
     say(`⏩ 过了 ${b.textContent.replace('过 ', '').replace('过', '')}`, d.out || '');
   }));
   document.querySelectorAll('button[data-wx]').forEach(b => b.addEventListener('click', async () => {
+    endTag();
     const d = await post('/demo/weather', { sky: b.dataset.wx, temp: b.dataset.wx === '阴' ? 9 : 15, rh: +b.dataset.rh, wind: +b.dataset.wind });
     say('☁️ 天气换成 ' + b.dataset.wx, d.out || '');
   }));
-  $('button[data-reset]').addEventListener('click', async () => { const d = await post('/demo/reset'); log.textContent = ''; say('🧹 清空', d.out); });
+  $('button[data-reset]').addEventListener('click', async () => {
+    const d = await post('/demo/reset'); log.textContent = ''; say('🧹 清空', d.out);
+    endTag(); document.querySelectorAll('.msgs .ll-tag').forEach(el => el.remove());
+  });
   fetch('/demo/clock').then(r => r.json()).then(clock);
 </script>
 </body>

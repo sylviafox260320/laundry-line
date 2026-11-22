@@ -7,7 +7,13 @@
  *   data-rope=".chat-header"            绳子挂在哪个元素的下沿（不写＝贴在屏幕左上角）
  *   data-basket="#input-bar"            满篮子坐在哪个元素的右上角（不写＝贴在屏幕右下角）
  *   data-poll="300"                     多少秒取一次（默认 300）
- * 颜色、尺寸全是 CSS 变量（.ll-wrap / .ll-bwrap 上的 --ll-*），在你自己的样式里盖掉就行。
+ * 颜色、尺寸全是 CSS 变量（.ll-wrap / .ll-bwrap / .ll-tag 上的 --ll-*），在你自己的样式里盖掉就行。
+ *
+ * 洗标：你的聊天页画工具调用时，laundry 那几次可以画成一张衣服洗标——
+ *   const el = laundryLine.tag([{ action: 'put', text: '收进洗衣篮了：…' }, { action: 'wash', text: '…' }], { time: Date.now() });
+ *   text 直接塞工具的返回就行（{"result": "…"} 也认）；同一回合连着几次就放进同一个数组，并成一张。
+ *   look / rules 不画（返回 null），照你原来的样子画就好。
+ *   { time } 是这一回合的时间（Date / 毫秒），底下印成「月.日 时:分」；想自己写就给 { stamp: '…' }。
  * 夜间：<html data-theme="dark"> 时自动暗一档。
  */
 (function () {
@@ -59,7 +65,36 @@
   .ll-bnote { position: absolute; right: calc(var(--ll-b-right) + var(--ll-b-size) + 6px); bottom: 2px; white-space: nowrap; padding: 4px 9px;
     background: var(--ll-note-bg, #FBF6EA); color: var(--ll-note-ink, #5A4A3A); font-family: Georgia, 'Noto Serif SC', 'Songti SC', serif; font-size: 12.5px;
     border-radius: 3px; box-shadow: 0 2px 6px rgba(70,50,30,0.15); opacity: 0; transform: translateX(4px); transition: opacity .25s, transform .25s; pointer-events: none; }
-  .ll-bnote.open { opacity: 1; transform: none; }`;
+  .ll-bnote.open { opacity: 1; transform: none; }
+  /* 洗标 */
+  .ll-tag { --ll-tag-cloth: #FBF7EE; --ll-tag-hem: #EFE6D4; --ll-tag-stitch: #CFAE92; --ll-tag-ink: #4D4A45; --ll-tag-sym: #6A5A4C;
+    --ll-tag-sym-off: .22; --ll-tag-sub: #A0958A; --ll-tag-pin: #D8B98E; --ll-tag-pin-edge: #B8946A; --ll-tag-shadow: rgba(60,45,30,.16);
+    --ll-tag-w: min(262px, 76vw); --ll-tag-tilt: -1.4deg; --ll-tag-font: 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+    width: var(--ll-tag-w); position: relative; margin: 12px 0 6px 4px; align-self: flex-start; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    filter: drop-shadow(0 1px 1px var(--ll-tag-shadow)) drop-shadow(0 6px 12px var(--ll-tag-shadow)); }
+  [data-theme="dark"] .ll-tag { --ll-tag-cloth: #F1E9DA; --ll-tag-hem: #E2D6C0; --ll-tag-shadow: rgba(0,0,0,.45); }
+  .ll-tag-cloth { position: relative; background-color: var(--ll-tag-cloth); padding: 20px 16px; transform: rotate(var(--ll-tag-tilt)); transform-origin: 20% 0;
+    background-image: repeating-linear-gradient(0deg, rgba(90,70,40,.014) 0 1px, transparent 1px 2px), repeating-linear-gradient(90deg, rgba(90,70,40,.012) 0 1px, transparent 1px 2px);
+    -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 9px 100%;
+            mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 9px 100%; }
+  .ll-tag-cloth::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 9px; background: var(--ll-tag-hem); border-bottom: 1px solid rgba(120,95,60,.12); }
+  .ll-tag-cloth::after { content: ""; position: absolute; left: 7px; right: 7px; top: 14px; bottom: 11px; border-left: 1px dashed var(--ll-tag-stitch); border-right: 1px dashed var(--ll-tag-stitch); opacity: .8; pointer-events: none; }
+  .ll-tag-hem { position: absolute; left: 6px; right: 6px; top: 4px; border-top: 1px dashed var(--ll-tag-stitch); }
+  .ll-tag-pin { position: absolute; z-index: 2; left: 30px; top: -23px; width: 14px; height: 36px; transform: rotate(-8deg); }
+  .ll-tag-syms { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 9px; border-bottom: 1px solid rgba(120,95,60,.13); color: var(--ll-tag-sym); }
+  .ll-tag-syms svg { width: 21px; height: 21px; opacity: var(--ll-tag-sym-off); }
+  .ll-tag-syms svg.on { opacity: 1; }
+  .ll-tag svg { fill: none; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
+  .ll-tag-steps { list-style: none; margin: 9px 0 0; padding: 0 2px; }
+  .ll-tag-step { display: flex; gap: 8px; align-items: flex-start; font: 12.5px/1.7 var(--ll-tag-font); color: var(--ll-tag-ink); }
+  .ll-tag-step + .ll-tag-step { margin-top: 5px; }
+  .ll-tag-step svg { flex: none; width: 15px; height: 15px; margin-top: 3px; color: var(--ll-tag-sym); stroke-width: 1.5; }
+  .ll-tag-txt { min-width: 0; overflow-wrap: anywhere; }
+  .ll-tag-more { display: none; font-size: 11.5px; line-height: 1.65; opacity: .72; white-space: pre-line; margin-top: 2px; }
+  .ll-tag.ll-open .ll-tag-more { display: block; }
+  .ll-tag-foot { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; padding: 0 2px; font: 9.5px/1 ui-monospace, Menlo, monospace; color: var(--ll-tag-sub); }
+  .ll-tag-foot span:first-child { font: 10px/1 var(--ll-tag-font); }
+`;
 
   const NS = 'http://www.w3.org/2000/svg';
   // 每种衣服一个小剪影：上沿 y=0 就是夹在绳子上的地方
@@ -195,9 +230,12 @@
 
   let wrap, note, bwrap, bnote, btimer, data = null, skew = 0;
   function mount(sel) { if (!sel) return null; try { return document.querySelector(sel); } catch (e) { return null; } }
+  function style() {
+    if (!document.getElementById('ll-style')) { const st = document.createElement('style'); st.id = 'll-style'; st.textContent = CSS; document.head.appendChild(st); }
+  }
   function ensure() {
     if (wrap) return true;
-    if (!document.getElementById('ll-style')) { const st = document.createElement('style'); st.id = 'll-style'; st.textContent = CSS; document.head.appendChild(st); }
+    style();
     wrap = document.createElement('div'); wrap.className = 'll-wrap'; wrap.hidden = true;
     note = document.createElement('div'); note.className = 'll-note';
     const host = mount(ds.rope);
@@ -305,7 +343,61 @@
       if (r.ok) render(await r.json());
     } catch (e) {}
   }
-  window.laundryLine = { refresh: load, render, openNote: () => note && note.classList.add('open') };
+
+  // ───────── 洗标：laundryLine.tag(steps, {time}) ─────────
+  const SYM = {
+    put: '<path d="M4 9.5h16l-1.8 9.5H5.8z"/><path d="M8.5 9.5 10.5 5M15.5 9.5 13.5 5"/><path d="M9 12.5v4M12 12.5v4M15 12.5v4"/>',
+    wash: '<path d="M3 7.5 5.3 19h13.4L21 7.5"/><path d="M3.6 10.3c1.4 1.2 2.8 1.2 4.2 0s2.8-1.2 4.2 0 2.8 1.2 4.2 0 2.8-1.2 4.2 0"/>',
+    handwash: '<path d="M3 9.5 5 19h14l2-9.5"/><path d="M3.5 12c1.4 1.1 2.8 1.1 4.2 0M16.3 12c1.4 1.1 2.8 1.1 4.2 0"/><path d="M9.6 15.5V7.2a1 1 0 0 1 2 0V11V5.6a1 1 0 0 1 2 0V11V6.6a1 1 0 0 1 2 0v6.2c0 1.6-1.1 2.7-2.7 2.7h-1.6"/>',
+    hang: '<rect x="4" y="4" width="16" height="16" rx="1.6"/><path d="M4.3 8.2c4.2 3.6 11.2 3.6 15.4 0"/>',
+    dry: '<rect x="4" y="4" width="16" height="16" rx="1.6"/><circle cx="12" cy="12" r="5.3"/>',
+    fold: '<path d="M8.8 4.5h6.4l3.6 2.3 1.7 3.6-2.8 1.3v7.8H6.3v-7.8L3.5 10.4l1.7-3.6z"/><path d="M8.8 4.5c.8 1.8 5.6 1.8 6.4 0"/>'
+  };
+  const SYM_ORDER = ['put', 'wash', 'handwash', 'hang', 'dry', 'fold'];
+  const PIN = '<svg class="ll-tag-pin" viewBox="0 0 15 40" style="stroke:none"><rect x="1.5" y="0.5" width="5.6" height="39" rx="2.2" fill="var(--ll-tag-pin)" stroke="var(--ll-tag-pin-edge)" stroke-width=".8"/>'
+    + '<rect x="7.9" y="0.5" width="5.6" height="39" rx="2.2" fill="var(--ll-tag-pin)" stroke="var(--ll-tag-pin-edge)" stroke-width=".8"/>'
+    + '<rect x="0.6" y="17" width="13.8" height="5" rx="2.5" fill="none" stroke="#9A9590" stroke-width="1.2"/></svg>';
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const sym = (a, cls) => '<svg viewBox="0 0 24 24"' + (cls ? ' class="' + cls + '"' : '') + '>' + SYM[a] + '</svg>';
+  function resultText(r) {
+    if (r == null) return '';
+    if (typeof r === 'object') return typeof r.result === 'string' ? r.result : JSON.stringify(r);
+    const t = String(r);
+    try { const j = JSON.parse(t); if (j && typeof j.result === 'string') return j.result; if (typeof j === 'string') return j; } catch (e) {}
+    const m = t.match(/"result"\s*:\s*"((?:[^"\\]|\\.)*)/);
+    if (m) { try { return JSON.parse('"' + m[1] + '"'); } catch (e) { return m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\$/, ''); } }
+    return t;
+  }
+  function tag(steps, opts) {
+    opts = opts || {};
+    steps = (steps || []).map(x => ({ action: String((x && x.action) || '').toLowerCase(), text: resultText(x && (x.text != null ? x.text : x.result)) }))
+      .filter(x => SYM[x.action]);
+    if (!steps.length) return null;
+    style();
+    const used = {};
+    const lis = steps.map(x => {
+      used[x.action] = 1;
+      const txt = x.text.trim();
+      // 每步只露第一句（到第一个句号），剩下的点开才看见
+      const cut = txt.search(/[。！？]/), nl = txt.indexOf('\n');
+      const end = (cut >= 0 && (nl < 0 || cut < nl)) ? cut + 1 : (nl >= 0 ? nl : txt.length);
+      const first = txt.slice(0, end).trim() || '……', rest = txt.slice(end).trim();
+      return '<li class="ll-tag-step">' + sym(x.action) + '<div class="ll-tag-txt">' + esc(first)
+        + (rest ? '<div class="ll-tag-more">' + esc(rest) + '</div>' : '') + '</div></li>';
+    }).join('');
+    const t = opts.time != null ? new Date(opts.time) : null;
+    const p2 = n => ('0' + n).slice(-2);
+    const when = opts.stamp != null ? String(opts.stamp) : t && !isNaN(t) ? p2(t.getMonth() + 1) + '.' + p2(t.getDate()) + '  ' + p2(t.getHours()) + ':' + p2(t.getMinutes()) : '';
+    const el = document.createElement('div');
+    el.className = 'll-tag';
+    if (t && !isNaN(t)) el.style.setProperty('--ll-tag-tilt', (-2.2 + ((t.getTime() / 60000) % 7) * 0.35).toFixed(2) + 'deg');
+    el.innerHTML = PIN + '<div class="ll-tag-cloth"><div class="ll-tag-hem"></div><div class="ll-tag-syms">'
+      + SYM_ORDER.map(a => sym(a, used[a] ? 'on' : '')).join('') + '</div><ul class="ll-tag-steps">' + lis + '</ul>'
+      + '<div class="ll-tag-foot"><span>' + esc(opts.label || '洗衣房') + '</span><span>' + esc(when) + '</span></div></div>';
+    el.addEventListener('click', () => el.classList.toggle('ll-open'));
+    return el;
+  }
+  window.laundryLine = { refresh: load, render, tag, openNote: () => note && note.classList.add('open') };
   function start() { load(); setInterval(load, POLL); setInterval(() => render(), 60 * 1000); }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();

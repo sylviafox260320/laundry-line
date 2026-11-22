@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>晾衣绳 laundry-line · 演示</title>
+<style>
+  :root { --paper: #FBF8F1; --ink: #3A3530; --soft: #9A9489; --accent: #C98A5E; --card: #FFFDF8; --line: rgba(60,45,30,.12); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #EFE9DE; color: var(--ink); font-family: -apple-system, "PingFang SC", "Noto Sans SC", system-ui, sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 18px 60px; display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  h1 { width: 100%; margin: 0 0 4px; font-family: Georgia, "Noto Serif SC", "Songti SC", serif; font-weight: 600; font-size: 26px; }
+  .sub { width: 100%; margin: 0 0 8px; color: var(--soft); font-size: 14px; }
+  /* 假手机 */
+  .phone { width: 375px; height: 720px; background: var(--paper); border-radius: 34px; box-shadow: 0 18px 40px rgba(60,40,20,.18), 0 0 0 10px #2B2622;
+    display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .demo-header { display: flex; align-items: center; gap: 10px; padding: 46px 18px 14px; border-bottom: 1px solid var(--line); background: var(--paper); z-index: 10; }
+  .demo-header .home { width: 22px; height: 22px; color: var(--accent); }
+  .demo-header b { font-family: Georgia, "Noto Serif SC", serif; font-size: 22px; font-weight: 600; }
+  .msgs { flex: 1; overflow: hidden; padding: 120px 14px 14px; display: flex; flex-direction: column; gap: 10px; justify-content: flex-end; }
+  .bub { max-width: 78%; padding: 9px 13px; border-radius: 18px; font-size: 15px; line-height: 1.6; }
+  .bub.me { align-self: flex-end; background: var(--accent); color: #fff; }
+  .bub.him { align-self: flex-start; background: #F1ECE3; }
+  #demo-input { padding: 8px 12px 26px; border-top: 1px solid var(--line); background: var(--paper); }
+  #demo-input .box { border: 1px solid rgba(0,0,0,.1); border-radius: 18px; padding: 10px 14px; color: var(--soft); font-size: 14px; background: #fff; }
+  /* 控制台 */
+  .panel { flex: 1; min-width: 300px; }
+  .clock { display: flex; gap: 12px; align-items: baseline; margin-bottom: 14px; }
+  .clock .t { font-family: Georgia, serif; font-size: 30px; }
+  .clock .w { color: var(--soft); }
+  .group { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; }
+  .group h3 { margin: 0 0 8px; font-size: 13px; color: var(--soft); font-weight: 500; letter-spacing: 1px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(60,45,30,.22); background: #fff; color: var(--ink); cursor: pointer; }
+  button:hover { background: #F7F1E6; }
+  button.go { border-color: var(--accent); color: #9A5F37; }
+  input[type=text] { font: inherit; font-size: 14px; width: 100%; padding: 7px 10px; border: 1px solid rgba(60,45,30,.22); border-radius: 8px; margin-bottom: 8px; background: #fff; }
+  #log { white-space: pre-wrap; font-size: 13.5px; line-height: 1.7; max-height: 300px; overflow: auto; margin: 0; }
+  #log .a { color: var(--accent); }
+  .hint { color: var(--soft); font-size: 12.5px; margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧺 晾衣绳 laundry-line</h1>
+  <p class="sub">一间临时洗衣房，带快进钟。点右边的按钮，就是小机在调 <code>laundry</code> 工具；天好晾出去的，会挂在左边聊天页的绳子上。</p>
+
+  <div class="phone">
+    <div class="demo-header">
+      <svg class="home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.8L12 3l9 6.8"/><path d="M5 10.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9.5"/><path d="M9.5 21v-6h5v6"/></svg>
+      <b>小机</b>
+    </div>
+    <div class="msgs">
+      <div class="bub me">床单是不是该洗了</div>
+      <div class="bub him">嗯，我去收。</div>
+      <div class="bub him">天好，晾出去了，你一抬头就看得见。</div>
+    </div>
+    <div id="demo-input"><div class="box">说点什么…</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="clock"><span class="t" id="clk">--:--</span><span class="w" id="wx"></span></div>
+
+    <div class="group">
+      <h3>洗衣篮</h3>
+      <input type="text" id="items" value="小猫床单、小猫被套、枕套、白T恤、黑T恤、睡衣、内裤">
+      <div class="row">
+        <button class="go" data-a="put">收进篮子</button>
+        <button data-a="look">看一眼</button>
+        <button data-a="rules">屋里的规矩</button>
+      </div>
+      <p class="hint">篮子装 10 件，床单被套毯子算两件；满了输入框上会坐一个小篮子。</p>
+    </div>
+
+    <div class="group">
+      <h3>洗</h3>
+      <div class="row">
+        <button class="go" data-a="wash">洗（标准档）</button>
+        <button data-a="wash" data-m="轻柔" data-i="ask">只洗几件 · 轻柔档</button>
+        <button data-a="handwash">手洗一步</button>
+      </div>
+      <p class="hint">深浅混洗会串色；睡衣进标准档、进烘干机会出事；手洗是泡、搓、冲、拧，一步点一次。</p>
+    </div>
+
+    <div class="group">
+      <h3>晾 / 烘 / 叠</h3>
+      <div class="row">
+        <button class="go" data-a="hang">晾（天好就晾外面）</button>
+        <button data-a="hang" data-m="屋里">晾屋里 / 收进屋</button>
+        <button data-a="dry">烘干机</button>
+        <button class="go" data-a="fold">收下来叠好</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>时间和天气</h3>
+      <div class="row">
+        <button data-adv="30">过 30 分钟</button>
+        <button data-adv="120">过 2 小时</button>
+        <button data-adv="720">过一夜（12 小时）</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button data-wx="晴" data-rh="45" data-wind="15">晴，有风</button>
+        <button data-wx="多云" data-rh="60" data-wind="6">多云</button>
+        <button data-wx="阴" data-rh="85" data-wind="3">阴潮</button>
+        <button data-wx="小雨" data-rh="92" data-wind="8">下雨</button>
+        <button data-reset>清空洗衣房</button>
+      </div>
+      <p class="hint">下雨后 30 分钟内不收进屋，晾在外面的就淋脏了，得重洗。</p>
+    </div>
+
+    <div class="group">
+      <h3>回执</h3>
+      <pre id="log"></pre>
+    </div>
+  </div>
+</div>
+
+<script src="/widget/laundry-line.js" data-rope=".demo-header" data-basket="#demo-input" data-poll="30" defer></script>
+<script>
+  const $ = s => document.querySelector(s);
+  const log = $('#log');
+  function say(head, text) {
+    const a = document.createElement('span'); a.className = 'a'; a.textContent = head + '\n';
+    log.prepend(document.createTextNode((text || '') + '\n\n')); log.prepend(a);
+  }
+  function clock(d) {
+    $('#clk').textContent = d.label || '';
+    const w = d.weather;
+    $('#wx').textContent = w ? `${w.sky}，${Math.round(w.temp)}°，湿度 ${Math.round(w.rh)}%，风 ${Math.round(w.wind)} km/h` : '';
+  }
+  async function post(url, body) {
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+    const d = await r.json(); clock(d);
+    if (window.laundryLine) window.laundryLine.refresh();
+    return d;
+  }
+  document.querySelectorAll('button[data-a]').forEach(b => b.addEventListener('click', async () => {
+    const action = b.dataset.a, mode = b.dataset.m || '';
+    let items = '';
+    if (action === 'put') items = $('#items').value;
+    if (b.dataset.i === 'ask') items = prompt('只洗哪几件？（顿号隔开）', '睡衣') || '';
+    const d = await post('/demo/run', { action, items, mode });
+    say(`laundry(${action}${items ? '，' + items : ''}${mode ? '，' + mode : ''})`, d.out);
+  }));
+  document.querySelectorAll('button[data-adv]').forEach(b => b.addEventListener('click', async () => {
+    const d = await post('/demo/advance', { minutes: +b.dataset.adv });
+    say(`⏩ 过了 ${b.textContent.replace('过 ', '').replace('过', '')}`, d.out || '');
+  }));
+  document.querySelectorAll('button[data-wx]').forEach(b => b.addEventListener('click', async () => {
+    const d = await post('/demo/weather', { sky: b.dataset.wx, temp: b.dataset.wx === '阴' ? 9 : 15, rh: +b.dataset.rh, wind: +b.dataset.wind });
+    say('☁️ 天气换成 ' + b.dataset.wx, d.out || '');
+  }));
+  $('button[data-reset]').addEventListener('click', async () => { const d = await post('/demo/reset'); log.textContent = ''; say('🧹 清空', d.out); });
+  fetch('/demo/clock').then(r => r.json()).then(clock);
+</script>
+</body>
+</html>

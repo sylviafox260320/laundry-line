@@ -1,0 +1,48 @@
+# 晾衣绳 laundry-line · 示例设置（复制成 laundry-line.toml 再改；没写的项按默认值走）
+
+[home]
+timezone = "Asia/Shanghai"
+latitude = 31.23
+longitude = 121.47
+pet = "团子"                       # 家里的猫，会来捣乱
+
+[server]
+port = 8790
+token = "换成你自己的一串字"        # 设了以后 /api 和 /mcp 都要带
+
+[rain]
+# 下雨那一下、他醒着，往你家系统 POST {"event":"rain","text":...}，你家系统转给他
+webhook = "http://127.0.0.1:8000/your/rain/hook"
+
+[companion]
+# 他睡着了就不叫（下雨淋了算他睡前没收）
+sleeping_url = "http://127.0.0.1:8000/your/status"
+sleeping_key = "sleeping"
+
+[rules]
+text = """屋里的规矩：
+· 床单被套过冷水。
+· 天好就晾出来，晾了我才看得见；烘干机留给下雨天。
+· 睡衣不进烘干机。
+· 内裤手洗。"""
+never_dry = ["睡衣", "睡裙"]
+handwash_only = ["内裤"]
+cold_water = ["床单", "被套"]
+
+[[bed_sets]]
+name = "小猫"
+keywords = ["小猫", "猫"]
+cover = "#F6F1E4"
+sheet = "#A9BEA4"
+pattern = "cats"
+
+[[bed_sets]]
+name = "小狗"
+keywords = ["小狗", "狗"]
+cover = "#F7F2EA"
+sheet = "#A58C7C"
+pattern = "dogs"
+
+[blanket]
+color = "#F3C3CE"
+pattern = "kitty"

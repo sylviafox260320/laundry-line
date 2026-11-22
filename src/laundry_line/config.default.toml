@@ -1,0 +1,92 @@
+# 晾衣绳 laundry-line · 默认设置
+# 别直接改这个文件：`laundry-line init` 会在当前目录生成一份 laundry-line.toml，改那份就行，
+# 没写的项都按这里的默认值走。
+
+[home]
+timezone = "Asia/Shanghai"         # 时区，决定白天黑夜、回执里的钟点
+latitude = 31.23                   # 住哪儿：天气按这个经纬度取（Open-Meteo，免费，不用注册）
+longitude = 121.47
+day_start = 7                      # 几点算天亮
+day_end = 17                       # 几点算天黑（之后晾在外面的干得很慢）
+pet = ""                           # 家里有猫就写名字（比如 "团子"），它会来捣乱；留空就没有
+pet_kind = "猫"
+
+[server]
+host = "127.0.0.1"
+port = 8790
+token = ""                         # 设了就要带：请求头 Authorization: Bearer <token>，或网址后面 ?token=<token>
+cors_origins = ["*"]               # 晾衣绳小组件挂在别的网址上时，要允许那个网址来取数据
+tick_minutes = 5                   # 多久往前晾一次、看一次天
+
+[weather]
+provider = "open-meteo"            # open-meteo / file / manual
+file = ""                          # provider = "file" 时：一个 JSON 文件，字段见 README
+cache_minutes = 15
+stale_hours = 3                    # 天气超过这么久没更新，就当不知道外面怎样（只敢晾屋里）
+
+[washer]
+wash_min = 45                      # 标准档一缸
+gentle_min = 40                    # 轻柔档
+dryer_min = 50                     # 烘干机
+musty_after_hours = 3              # 洗好闷在里面超过这么久就有味
+
+[handwash]
+soak_min = 10                      # 手洗：泡多久
+scrub_min = 3                      # 搓
+rinse_min = 3                      # 冲
+
+[basket]
+cap = 10                           # 洗衣篮最多装几件
+big = ["床单", "被套", "被子", "毯", "床笠", "浴巾", "床罩"]   # 大件，算两件
+
+[drying]                           # 每小时干几成（1 = 全干）
+sky = [["晴", 0.40], ["少云|多云|间晴|晴间", 0.30], ["阴|雾", 0.20]]
+sky_else = 0.25
+night = 0.22                       # 夜里晾在外面，只剩这么多
+indoor = 0.12                      # 屋里晾衣架
+big = 0.85                         # 一缸里有大件，整缸慢一点
+
+[rain]
+grace_min = 30                     # 下雨后这么久内收进屋＝只是潮了；没收＝淋脏了，得重洗
+hear_text = "[窗外下起雨来了，雨点一阵一阵打在玻璃上。]"
+webhook = ""                       # 下雨那一下、他醒着：往这个网址 POST {"event":"rain","text":...}。留空＝只走 /api/notice
+
+[companion]                        # 他睡没睡（睡着了下雨不叫他）。都留空＝当他一直醒着
+sleeping_url = ""                  # GET 这个网址，返回 JSON
+sleeping_file = ""                 # 或者读这个 JSON 文件
+sleeping_key = "sleeping"          # JSON 里哪个字段是真/假，可以写 "a.b.c"
+
+[sorting]
+dark = ["黑", "深", "藏青", "海军", "牛仔", "咖啡", "棕", "酒红", "墨绿", "红"]
+light = ["白", "浅", "米", "奶", "淡", "粉", "杏"]
+bleed_p = 0.55                     # 深浅混一缸，串色的机会
+delicate = ["蕾丝", "真丝", "丝绸", "丝质", "丝的", "睡衣", "睡裙", "吊带", "羊毛", "羊绒", "毛衣"]
+delicate_wash_p = 0.6              # 娇气的进了标准档，出事的机会
+delicate_dry_p = 0.85              # 娇气的进了烘干机，出事的机会
+
+[rules]
+# rules 动作原样给他看的「屋里的规矩」。按你们家的洗法写。
+text = """屋里的规矩：
+· 天好就晾出来，烘干机留给下雨天、阴潮天。
+· 深的浅的分开洗。
+· 娇气的走轻柔档，别进烘干机。"""
+never_dry = []                     # 这些进了烘干机＝大事故，一定出事，而且一直记在 look 最底下（比如 ["睡衣"]）
+handwash_only = []                 # 这些该手洗：handwash 不写 items 就拿篮子里的这些；进了洗衣机会提一句规矩
+cold_water = ["床单", "被套"]      # 这些进洗衣机，回执写「走冷水」
+prefer_line_dry = true             # 天好还用烘干机，提一句规矩
+
+[mishaps]
+p = 0.25                           # 一缸碰上小意外的机会（开洗那一刻就定，不改结果，只多一句画面）
+
+# 家里的四件套：名字里写了关键词就算这套；画在绳子上的样子也在这里。
+# pattern：cats（浅蓝竖条＋小黑猫）/ dogs（卷毛小狗头＋点点）/ dots / stripes / plain
+[[bed_sets]]
+name = "条纹"
+keywords = ["条纹"]
+cover = "#F6F1E4"                  # 被套、枕套的底色
+sheet = "#A9BEA4"                  # 床单
+pattern = "stripes"
+
+[blanket]                          # 毯子 / 被子在绳子上的样子。pattern：plain / kitty（一身小猫头）/ stripes
+color = ""                         # 留空＝随便挑一个浅色
+pattern = "plain"

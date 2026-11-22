@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "laundry-line"
+version = "0.1.0"
+description = "晾衣绳：给你的小机一间洗衣房。时间按真的走，衣服晾在你的聊天页上。A small laundry room for your AI companion (MCP)."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+  "mcp>=1.20,<2",
+  "uvicorn>=0.30",
+]
+
+[project.scripts]
+laundry-line = "laundry_line.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+laundry_line = ["web/*", "config.default.toml"]
